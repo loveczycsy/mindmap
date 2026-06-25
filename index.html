@@ -257,6 +257,32 @@ body{display:flex;flex-direction:column;overflow:hidden}
 #node-color-grid .fs-swatch:hover{transform:scale(1.2);z-index:1}
 #fmt-color-grid .fs-swatch.selected,
 #node-color-grid .fs-swatch.selected{outline:2px solid var(--accent);outline-offset:1px}
+
+/* 浏览器存储弹窗 */
+.local-dialog-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.3);z-index:999}
+.local-dialog{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.2);z-index:1000;width:400px;max-width:90vw;max-height:80vh;display:flex;flex-direction:column}
+.local-dialog .ld-header{padding:14px 18px;border-bottom:1px solid var(--border);font-size:16px;font-weight:600;display:flex;justify-content:space-between;align-items:center}
+.local-dialog .ld-close{width:28px;height:28px;border:none;background:transparent;font-size:20px;cursor:pointer;border-radius:4px;display:flex;align-items:center;justify-content:center;color:var(--text-secondary)}
+.local-dialog .ld-close:hover{background:var(--hover-bg)}
+.local-dialog .ld-body{padding:16px 18px;overflow-y:auto;flex:1}
+.local-dialog .ld-footer{padding:12px 18px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end}
+.local-dialog .ld-footer button{padding:7px 16px;border-radius:6px;font-size:14px;cursor:pointer;border:1px solid var(--border);background:#fff;color:var(--text)}
+.local-dialog .ld-footer button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.local-dialog .ld-footer button.primary:hover{opacity:.9}
+.local-dialog .ld-footer button:hover{background:var(--hover-bg)}
+.ld-save-input{width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px;outline:none;box-sizing:border-box;margin-top:4px}
+.ld-save-input:focus{border-color:var(--accent)}
+.ld-item{display:flex;align-items:center;padding:10px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;cursor:pointer;transition:background .1s}
+.ld-item:hover{background:var(--accent-light);border-color:var(--accent)}
+.ld-item .ld-name{flex:1;font-size:14px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ld-item .ld-time{font-size:12px;color:var(--text-secondary);margin-left:12px;white-space:nowrap}
+.ld-item .ld-del{width:24px;height:24px;border:none;background:transparent;font-size:16px;cursor:pointer;border-radius:4px;color:#999;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:8px}
+.ld-item .ld-del:hover{background:#fef0f0;color:#f56c6c}
+.ld-empty{padding:30px 0;text-align:center;color:var(--text-secondary);font-size:14px}
+.ld-tab{flex:1;padding:10px;border:none;background:transparent;font-size:14px;cursor:pointer;color:var(--text-secondary);transition:all .1s;border-bottom:2px solid transparent}
+.ld-tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:500}
+.ld-tab:hover{color:var(--text);background:var(--hover-bg)}
+.ld-status{padding:6px 0;text-align:center;color:var(--text-secondary);font-size:13px}
 </style>
 </head>
 <body>
@@ -266,6 +292,11 @@ body{display:flex;flex-direction:column;overflow:hidden}
   <button id="btn-new" title="新建脑图">📂 新建</button>
   <button id="btn-save" title="保存为 .qmind 文件 (Ctrl+S)">💾 保存<span id="save-indicator" style="color:#e6a23c;font-weight:700"></span></button>
   <button id="btn-open" title="打开 .qmind 文件">📁 打开</button>
+  <button id="btn-save-local" title="保存到浏览器">📥 存本地</button>
+  <button id="btn-load-local" title="从浏览器打开">📂 取本地</button>
+  <button id="btn-save-cloud" title="保存到GitHub云端">☁️ 存云端</button>
+  <button id="btn-load-cloud" title="从云端打开">☁️ 取云端</button>
+  <button id="btn-cloud-token" title="设置GitHub令牌">🔑 令牌</button>
   <span style="position:relative">
     <button id="btn-export" title="导出脑图">📷 导出 ▾</button>
     <div class="export-menu" id="export-menu">
@@ -483,6 +514,42 @@ body{display:flex;flex-direction:column;overflow:hidden}
   </div>
 </div>
 
+<!-- 浏览器存储弹窗 -->
+<div class="local-dialog-overlay" id="local-dialog-overlay">
+  <div class="local-dialog" id="local-dialog-save" style="display:none">
+    <div class="ld-header">
+      <span id="ld-save-title">保存到浏览器</span>
+      <button class="ld-close" id="ld-save-close">×</button>
+    </div>
+    <div class="ld-body">
+      <label style="font-size:14px;color:var(--text-secondary)">脑图名称</label>
+      <input class="ld-save-input" id="ld-save-name" placeholder="输入名称..." maxlength="50">
+    </div>
+    <div class="ld-footer">
+      <button id="ld-save-cancel">取消</button>
+      <button class="primary" id="ld-save-confirm">保存</button>
+    </div>
+  </div>
+  <div class="local-dialog" id="local-dialog-load" style="display:none">
+    <div class="ld-header">
+      <span>打开脑图</span>
+      <button class="ld-close" id="ld-load-close">×</button>
+    </div>
+    <div style="display:flex;border-bottom:1px solid var(--border)">
+      <button class="ld-tab active" data-tab="local">📥 本地</button>
+      <button class="ld-tab" data-tab="cloud">☁️ 云端</button>
+    </div>
+    <div class="ld-body" id="ld-load-list">
+      <div class="ld-empty">暂无保存的脑图</div>
+    </div>
+    <div class="ld-footer" id="ld-load-error" style="display:none;color:#f56c6c;font-size:13px;justify-content:flex-start;padding:6px 18px"></div>
+    <div class="ld-footer">
+      <button id="ld-load-cancel">关闭</button>
+      <button id="ld-refresh-cloud" style="display:none">🔄 刷新</button>
+    </div>
+  </div>
+</div>
+
 <script>
 /* ==================== ERROR HANDLING ==================== */
 window._mindmapInitError = null;
@@ -665,6 +732,20 @@ let panTranslateY = 0;
 let isDirty = false;
 let autoSaveTimer = null;
 const AUTOSAVE_KEY = 'qmind-autosave';
+
+/* ==================== GITHUB CONFIG ==================== */
+const GITHUB_OWNER = 'loveczycsy';
+const GITHUB_REPO = 'mindmap';
+const GITHUB_API = 'https://api.github.com';
+const CLOUD_DIR = 'mindmaps';
+const TOKEN_STORAGE_KEY = 'qmind-github-token';
+
+function getGithubToken(){
+  try { return localStorage.getItem(TOKEN_STORAGE_KEY) || ''; } catch(e){ return ''; }
+}
+function setGithubToken(token){
+  try { localStorage.setItem(TOKEN_STORAGE_KEY, token); } catch(e){} 
+}
 
 function autoSaveToLocal(){
   if(!mindmap) return;
@@ -2341,6 +2422,311 @@ function loadMindmap(file){
   r.readAsText(file);
 }
 
+/* ==================== BROWSER STORAGE ==================== */
+const LOCAL_PREFIX = 'qmind-saved-';
+const LOCAL_INDEX_KEY = 'qmind-saved-index';
+
+function getSavedList(){
+  try {
+    const idx = localStorage.getItem(LOCAL_INDEX_KEY);
+    return idx ? JSON.parse(idx) : [];
+  } catch(e){ return []; }
+}
+
+function saveSavedList(list){
+  try { localStorage.setItem(LOCAL_INDEX_KEY, JSON.stringify(list)); } catch(e){}
+}
+
+function saveToBrowser(){
+  if(!mindmap){alert('没有可保存的数据');return}
+  const name = document.getElementById('ld-save-name').value.trim();
+  if(!name){alert('请输入脑图名称');return}
+  mindmap.updatedAt = nowISO();
+  mindmap.title = document.getElementById('title-input').value.trim()||'实验脑图';
+  mindmap.globalNodeWidth = globalNodeWidth;
+  try {
+    localStorage.setItem(LOCAL_PREFIX + name, JSON.stringify(mindmap));
+    const list = getSavedList();
+    const exist = list.findIndex(i => i.name === name);
+    if(exist >= 0){
+      list[exist].time = mindmap.updatedAt;
+    } else {
+      list.unshift({name, time: mindmap.updatedAt});
+    }
+    saveSavedList(list);
+    hideLocalDialogs();
+    alert('已保存到浏览器：' + name);
+  } catch(e){
+    if(e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014){
+      alert('浏览器存储空间不足，请删除一些旧的脑图后再试');
+    } else {
+      alert('保存失败：' + e.message);
+    }
+  }
+}
+
+function loadFromBrowser(name){
+  try {
+    const data = localStorage.getItem(LOCAL_PREFIX + name);
+    if(!data){alert('未找到该脑图');return}
+    const d = JSON.parse(data);
+    if(!d.version||!d.root||!d.root.id){alert('数据损坏');return}
+    mindmap = d;
+    if(d.globalNodeWidth !== undefined){
+      globalNodeWidth = d.globalNodeWidth;
+      document.getElementById('width-input').value = globalNodeWidth;
+    }
+    if(!mindmap.crossLinks) mindmap.crossLinks = [];
+    if(!mindmap.summaries) mindmap.summaries = [];
+    selectedId = null; multiSelected.clear();
+    if(d.theme && themes[d.theme]) currentThemeName = d.theme;
+    if(mindmap.root && mindmap.root.fontSize === null) mindmap.root.fontSize = 22;
+    if(mindmap.root && mindmap.root.textAlign === null) mindmap.root.textAlign = 'center';
+    fullRender();
+    markClean();
+    hideLocalDialogs();
+  } catch(e){
+    alert('加载失败：' + e.message);
+  }
+}
+
+function deleteFromBrowser(name){
+  try {
+    localStorage.removeItem(LOCAL_PREFIX + name);
+    const list = getSavedList().filter(i => i.name !== name);
+    saveSavedList(list);
+    refreshLoadList();
+  } catch(e){}
+}
+
+function refreshLoadList(){
+  const container = document.getElementById('ld-load-list');
+  const list = getSavedList();
+  if(list.length === 0){
+    container.innerHTML = '<div class="ld-empty">暂无保存的脑图</div>';
+    return;
+  }
+  container.innerHTML = list.map(item => {
+    const timeStr = item.time ? new Date(item.time).toLocaleString('zh-CN',{hour12:false}) : '';
+    return '<div class="ld-item" data-name="' + item.name.replace(/"/g,'&quot;') + '">' +
+      '<span class="ld-name">' + item.name.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</span>' +
+      '<span class="ld-time">' + timeStr + '</span>' +
+      '<button class="ld-del" title="删除">✕</button></div>';
+  }).join('');
+  // Item click → load
+  container.querySelectorAll('.ld-item').forEach(el => {
+    el.addEventListener('click', function(e){
+      if(e.target.classList.contains('ld-del')) return;
+      loadFromBrowser(this.dataset.name);
+    });
+  });
+  // Delete button click
+  container.querySelectorAll('.ld-del').forEach(btn => {
+    btn.addEventListener('click', function(e){
+      e.stopPropagation();
+      const name = this.parentElement.dataset.name;
+      if(confirm('确定删除"' + name + '"吗？')){
+        deleteFromBrowser(name);
+      }
+    });
+  });
+}
+
+function showSaveDialog(){
+  document.getElementById('ld-save-name').value = document.getElementById('title-input').value.trim()||'实验脑图';
+  document.getElementById('local-dialog-save').style.display = 'flex';
+  document.getElementById('local-dialog-overlay').style.display = 'block';
+  setTimeout(() => document.getElementById('ld-save-name').select(), 50);
+}
+
+function showLoadDialog(){
+  refreshLoadList();
+  document.getElementById('local-dialog-load').style.display = 'flex';
+  document.getElementById('local-dialog-overlay').style.display = 'block';
+}
+
+function hideLocalDialogs(){
+  document.getElementById('local-dialog-save').style.display = 'none';
+  document.getElementById('local-dialog-load').style.display = 'none';
+  document.getElementById('local-dialog-overlay').style.display = 'none';
+  document.getElementById('ld-load-error').style.display = 'none';
+}
+
+/* ==================== CLOUD STORAGE (GitHub API) ==================== */
+let _cloudTab = 'local';
+
+async function githubApiFetch(endpoint, method, body){
+  const token = getGithubToken();
+  if(!token){ throw new Error('请先设置GitHub令牌 (点☁️ 令牌按钮)'); }
+  const url = GITHUB_API + endpoint;
+  const headers = {
+    'Authorization': 'Bearer ' + token,
+    'Accept': 'application/vnd.github.v3+json'
+  };
+  if(body){ headers['Content-Type'] = 'application/json'; }
+  const res = await fetch(url, {method, headers, body: body ? JSON.stringify(body) : undefined});
+  if(res.status === 404) return null;
+  if(!res.ok){
+    const err = await res.json().catch(()=>({}));
+    throw new Error(err.message || 'HTTP ' + res.status);
+  }
+  return res.json();
+}
+
+function showCloudSaveDialog(){
+  document.getElementById('ld-save-title').textContent = '保存到云端 (GitHub)';
+  document.getElementById('ld-save-name').value = document.getElementById('title-input').value.trim()||'实验脑图';
+  document.getElementById('local-dialog-save').style.display = 'flex';
+  document.getElementById('local-dialog-overlay').style.display = 'block';
+  document.getElementById('ld-save-confirm').onclick = saveToCloud;
+  setTimeout(() => document.getElementById('ld-save-name').select(), 50);
+}
+
+async function saveToCloud(){
+  const name = document.getElementById('ld-save-name').value.trim();
+  if(!name){alert('请输入脑图名称');return}
+  if(!mindmap){alert('没有可保存的数据');return}
+  
+  mindmap.updatedAt = nowISO();
+  mindmap.title = document.getElementById('title-input').value.trim()||'实验脑图';
+  mindmap.globalNodeWidth = globalNodeWidth;
+  const content = btoa(unescape(encodeURIComponent(JSON.stringify(mindmap, null, 2))));
+  const path = CLOUD_DIR + '/' + name.replace(/[/\\:?*"<>|]/g,'_') + '.qmind';
+  
+  try {
+    // Check if file already exists to get SHA
+    let sha = null;
+    const exist = await githubApiFetch('/repos/'+GITHUB_OWNER+'/'+GITHUB_REPO+'/contents/'+path);
+    if(exist) sha = exist.sha;
+    
+    await githubApiFetch('/repos/'+GITHUB_OWNER+'/'+GITHUB_REPO+'/contents/'+path, 'PUT', {
+      message: '保存脑图: ' + name,
+      content: content,
+      sha: sha
+    });
+    hideLocalDialogs();
+    alert('已保存到云端 ✓\nhttps://github.com/'+GITHUB_OWNER+'/'+GITHUB_REPO+'/tree/main/'+path);
+  } catch(e){
+    alert('保存到云端失败：' + e.message);
+  }
+}
+
+function switchCloudTab(tab){
+  _cloudTab = tab;
+  document.querySelectorAll('.ld-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  document.getElementById('ld-refresh-cloud').style.display = tab === 'cloud' ? 'inline-block' : 'none';
+  if(tab === 'local'){
+    refreshLoadList();
+  } else {
+    refreshCloudList();
+  }
+}
+
+async function refreshCloudList(){
+  const container = document.getElementById('ld-load-list');
+  const errEl = document.getElementById('ld-load-error');
+  container.innerHTML = '<div class="ld-status">正在加载云端列表...</div>';
+  
+  try {
+    const data = await githubApiFetch('/repos/'+GITHUB_OWNER+'/'+GITHUB_REPO+'/contents/'+CLOUD_DIR);
+    if(!data || !Array.isArray(data)){
+      container.innerHTML = '<div class="ld-empty">云端暂无保存的脑图</div>';
+      return;
+    }
+    const files = data.filter(f => f.name.endsWith('.qmind')).sort((a,b)=>b.name.localeCompare(a.name));
+    if(files.length === 0){
+      container.innerHTML = '<div class="ld-empty">云端暂无保存的脑图</div>';
+      return;
+    }
+    container.innerHTML = files.map(f => {
+      const name = f.name.replace(/\.qmind$/,'');
+      const time = f.lastModified();
+      const timeStr = time ? new Date(time).toLocaleString('zh-CN',{hour12:false}) : '';
+      return '<div class="ld-item" data-path="' + f.path + '" data-sha="' + f.sha + '">' +
+        '<span class="ld-name">' + name.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</span>' +
+        '<span class="ld-time">' + timeStr + '</span>' +
+        '<button class="ld-del" title="删除">✕</button></div>';
+    }).join('');
+    // Click to load
+    container.querySelectorAll('.ld-item').forEach(el => {
+      el.addEventListener('click', function(e){
+        if(e.target.classList.contains('ld-del')) return;
+        loadFromCloud(this.dataset.path, this.dataset.sha);
+      });
+    });
+    // Delete button
+    container.querySelectorAll('.ld-del').forEach(btn => {
+      btn.addEventListener('click', function(e){
+        e.stopPropagation();
+        const path = this.parentElement.dataset.path;
+        const sha = this.parentElement.dataset.sha;
+        const name = this.parentElement.querySelector('.ld-name').textContent;
+        if(confirm('确定从云端删除"' + name + '"吗？')){
+          deleteFromCloud(path, sha);
+        }
+      });
+    });
+    errEl.style.display = 'none';
+  } catch(e){
+    container.innerHTML = '<div class="ld-empty">加载失败</div>';
+    errEl.style.display = 'flex';
+    errEl.textContent = '☁️ ' + e.message;
+  }
+}
+
+async function loadFromCloud(path, sha){
+  try {
+    const data = await githubApiFetch('/repos/'+GITHUB_OWNER+'/'+GITHUB_REPO+'/contents/'+path);
+    if(!data){alert('未找到该文件');return}
+    const jsonStr = decodeURIComponent(escape(atob(data.content)));
+    const d = JSON.parse(jsonStr);
+    if(!d.version||!d.root||!d.root.id){alert('数据损坏');return}
+    mindmap = d;
+    if(d.globalNodeWidth !== undefined){
+      globalNodeWidth = d.globalNodeWidth;
+      document.getElementById('width-input').value = globalNodeWidth;
+    }
+    if(!mindmap.crossLinks) mindmap.crossLinks = [];
+    if(!mindmap.summaries) mindmap.summaries = [];
+    selectedId = null; multiSelected.clear();
+    if(d.theme && themes[d.theme]) currentThemeName = d.theme;
+    if(mindmap.root && mindmap.root.fontSize === null) mindmap.root.fontSize = 22;
+    if(mindmap.root && mindmap.root.textAlign === null) mindmap.root.textAlign = 'center';
+    fullRender();
+    markClean();
+    hideLocalDialogs();
+  } catch(e){
+    alert('加载云端文件失败：' + e.message);
+  }
+}
+
+async function deleteFromCloud(path, sha){
+  try {
+    await githubApiFetch('/repos/'+GITHUB_OWNER+'/'+GITHUB_REPO+'/contents/'+path, 'DELETE', {
+      message: '删除脑图',
+      sha: sha
+    });
+    refreshCloudList();
+  } catch(e){
+    alert('删除失败：' + e.message);
+  }
+}
+
+function setupGithubToken(){
+  const current = getGithubToken();
+  const mask = current ? current.substring(0, 8) + '...' : '';
+  const hint = current ? `当前令牌: ${mask}\n\n输入新令牌覆盖，或留空清除` : '请输入你的GitHub Personal Access Token';
+  const token = prompt(hint, current);
+  if(token === null) return;
+  if(token.trim()){
+    setGithubToken(token.trim());
+    alert('✓ 令牌已保存到浏览器');
+  } else {
+    setGithubToken('');
+    alert('令牌已清除');
+  }
+}
+
 function renderExportCanvas(){
   if(!mindmap){alert('无数据可导出');return null;}
 
@@ -2905,6 +3291,52 @@ function setupEvents(){
   document.getElementById('btn-save').addEventListener('click',saveMindmap);
 
   document.getElementById('btn-open').addEventListener('click',()=>document.getElementById('file-open').click());
+  document.getElementById('btn-save-local').addEventListener('click',function(){
+    document.getElementById('ld-save-title').textContent = '保存到浏览器';
+    document.getElementById('ld-save-confirm').onclick = saveToBrowser;
+    showSaveDialog();
+  });
+  document.getElementById('btn-load-local').addEventListener('click',function(){
+    showLoadDialog();
+    switchCloudTab('local');
+  });
+  document.getElementById('btn-save-cloud').addEventListener('click',showCloudSaveDialog);
+  document.getElementById('btn-load-cloud').addEventListener('click',function(){
+    showLoadDialog();
+    switchCloudTab('cloud');
+  });
+  document.getElementById('btn-cloud-token').addEventListener('click',setupGithubToken);
+  /* Save dialog */
+  document.getElementById('ld-save-confirm').addEventListener('click',function(){
+    // 根据当前标题判断是云端还是本地
+    if(document.getElementById('ld-save-title').textContent.includes('云端')){
+      saveToCloud();
+    } else {
+      saveToBrowser();
+    }
+  });
+  document.getElementById('ld-save-cancel').addEventListener('click',hideLocalDialogs);
+  document.getElementById('ld-save-close').addEventListener('click',hideLocalDialogs);
+  document.getElementById('ld-save-name').addEventListener('keydown',e=>{
+    if(e.key==='Enter'){
+      e.preventDefault();
+      if(document.getElementById('ld-save-title').textContent.includes('云端')){
+        saveToCloud();
+      } else {
+        saveToBrowser();
+      }
+    }
+  });
+  /* Load dialog */
+  document.getElementById('ld-load-cancel').addEventListener('click',hideLocalDialogs);
+  document.getElementById('ld-load-close').addEventListener('click',hideLocalDialogs);
+  document.getElementById('ld-refresh-cloud').addEventListener('click',refreshCloudList);
+  /* Tab switching */
+  document.querySelectorAll('.ld-tab').forEach(tab => {
+    tab.addEventListener('click', function(){ switchCloudTab(this.dataset.tab); });
+  });
+  /* Overlay click → close */
+  document.getElementById('local-dialog-overlay').addEventListener('click',function(e){if(e.target===this)hideLocalDialogs()});
   document.getElementById('file-open').addEventListener('change',e=>{
     if(e.target.files.length>0)loadMindmap(e.target.files[0]);
     e.target.value='';
