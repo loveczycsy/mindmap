@@ -2701,7 +2701,14 @@ async function loadFromCloud(path, sha){
   try {
     const data = await githubApiFetch('/repos/'+GITHUB_OWNER+'/'+GITHUB_REPO+'/contents/'+path);
     if(!data){alert('未找到该文件');return}
-    const jsonStr = decodeURIComponent(escape(atob(data.content)));
+    // Large files (>1MB) return empty content, fallback to Git Blob API
+    let rawContent = data.content;
+    if(!rawContent || data.encoding === 'none'){
+      const blob = await githubApiFetch('/repos/'+GITHUB_OWNER+'/'+GITHUB_REPO+'/git/blobs/'+data.sha);
+      if(!blob || !blob.content){alert('无法读取文件内容');return}
+      rawContent = blob.content;
+    }
+    const jsonStr = decodeURIComponent(escape(atob(rawContent)));
     const d = JSON.parse(jsonStr);
     if(!d.version||!d.root||!d.root.id){alert('数据损坏');return}
     mindmap = d;
