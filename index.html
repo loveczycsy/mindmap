@@ -2666,11 +2666,8 @@ async function refreshCloudList(){
     }
     container.innerHTML = files.map(f => {
       const name = f.name.replace(/\.qmind$/,'');
-      const time = f.lastModified();
-      const timeStr = time ? new Date(time).toLocaleString('zh-CN',{hour12:false}) : '';
       return '<div class="ld-item" data-path="' + f.path + '" data-sha="' + f.sha + '">' +
         '<span class="ld-name">' + name.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</span>' +
-        '<span class="ld-time">' + timeStr + '</span>' +
         '<button class="ld-del" title="删除">✕</button></div>';
     }).join('');
     // Click to load
