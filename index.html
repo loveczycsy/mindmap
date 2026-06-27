@@ -737,7 +737,7 @@ const AUTOSAVE_KEY = 'qmind-autosave';
 const GITHUB_OWNER = 'loveczycsy';
 const GITHUB_REPO = 'mindmap';
 const GITHUB_API = 'https://api.github.com';
-const CLOUD_DIR = 'mindmaps';
+const CLOUD_DIR = 'mindmaps'; // 云端脑图文件存放目录
 const TOKEN_STORAGE_KEY = 'qmind-github-token';
 
 function getGithubToken(){
@@ -1804,6 +1804,14 @@ function hideInlineLabelInput(){
   document.querySelectorAll('#mindmap-tree .node .label[style*="visibility: hidden"]').forEach(el => el.style.visibility = '');
 }
 
+/* 缩放/滚动/平移后重新定位正在编辑的标签输入框 */
+function repositionIfEditing(){
+  const inp = document.getElementById('inline-label-input');
+  if(inp && inp.style.display !== 'none' && selectedId){
+    positionInlineInput();
+  }
+}
+
 function positionInlineInput(){
   const inp = document.getElementById('inline-label-input');
   if(!selectedId){
@@ -1843,7 +1851,7 @@ function positionInlineInput(){
 
   // 只继承文字颜色和字号，border/background 用底层的节点框
   inp.style.color = nodeEl.style.color || '#303133';
-  inp.style.fontSize = (n && n.fontSize ? n.fontSize : 15) + 'px';
+  inp.style.fontSize = Math.round((n && n.fontSize ? n.fontSize : 15) * zoomLevel) + 'px';
   inp.style.textAlign = (n && n.textAlign ? n.textAlign : '');
   // 确保没有边框/背景/阴影（底层节点框提供）
   inp.style.border = 'none';
@@ -2556,9 +2564,9 @@ function hideLocalDialogs(){
 let _cloudTab = 'local';
 
 async function githubApiFetch(endpoint, method, body){
-  const token = getGithubToken();
-  if(!token){ throw new Error('请先设置GitHub令牌 (点☁️ 令牌按钮)'); }
   const url = GITHUB_API + endpoint;
+  const token = getGithubToken();
+  if(!token){ throw new Error('请先设置GitHub令牌 (点🔑 令牌按钮)'); }
   const headers = {
     'Authorization': 'Bearer ' + token,
     'Accept': 'application/vnd.github.v3+json'
@@ -2571,6 +2579,21 @@ async function githubApiFetch(endpoint, method, body){
     throw new Error(err.message || 'HTTP ' + res.status);
   }
   return res.json();
+}
+
+function setupGithubToken(){
+  const current = getGithubToken();
+  const mask = current ? current.substring(0, 8) + '...' : '';
+  const hint = current ? `当前令牌: ${mask}\n\n输入新令牌覆盖，或留空清除` : '请输入你的GitHub Personal Access Token';
+  const token = prompt(hint, current);
+  if(token === null) return;
+  if(token.trim()){
+    setGithubToken(token.trim());
+    alert('✓ 令牌已保存到浏览器');
+  } else {
+    setGithubToken('');
+    alert('令牌已清除');
+  }
 }
 
 function showCloudSaveDialog(){
@@ -2709,21 +2732,6 @@ async function deleteFromCloud(path, sha){
     refreshCloudList();
   } catch(e){
     alert('删除失败：' + e.message);
-  }
-}
-
-function setupGithubToken(){
-  const current = getGithubToken();
-  const mask = current ? current.substring(0, 8) + '...' : '';
-  const hint = current ? `当前令牌: ${mask}\n\n输入新令牌覆盖，或留空清除` : '请输入你的GitHub Personal Access Token';
-  const token = prompt(hint, current);
-  if(token === null) return;
-  if(token.trim()){
-    setGithubToken(token.trim());
-    alert('✓ 令牌已保存到浏览器');
-  } else {
-    setGithubToken('');
-    alert('令牌已清除');
   }
 }
 
@@ -4055,10 +4063,12 @@ function addNodeToSummary(sumid, mode){
   document.getElementById('btn-zoom-in').addEventListener('click', ()=>{
     zoomLevel = Math.min(3, +(zoomLevel + 0.1).toFixed(1));
     updateZoomStage();
+    repositionIfEditing();
   });
   document.getElementById('btn-zoom-out').addEventListener('click', ()=>{
     zoomLevel = Math.max(0.3, +(zoomLevel - 0.1).toFixed(1));
     updateZoomStage();
+    repositionIfEditing();
   });
 
   document.getElementById('mindmap-area').addEventListener('wheel', (e)=>{
@@ -4067,7 +4077,13 @@ function addNodeToSummary(sumid, mode){
     const step = e.deltaY > 0 ? -0.1 : 0.1;
     zoomLevel = Math.max(0.3, Math.min(3, +(zoomLevel + step).toFixed(1)));
     updateZoomStage();
+    repositionIfEditing();
   }, { passive: false });
+
+  /* 缩放/滚动/平移时重新定位标签编辑器 */
+  document.getElementById('mindmap-area').addEventListener('scroll', ()=>{
+    repositionIfEditing();
+  }, { passive: true });
 
   document.getElementById('inline-editor-save').addEventListener('click',saveNote);
   document.getElementById('inline-editor-cancel').addEventListener('click',()=>{
@@ -4936,6 +4952,7 @@ function addNodeToSummary(sumid, mode){
       panTranslateX = e.clientX - panStartX;
       panTranslateY = e.clientY - panStartY;
       treeContainer.style.transform = `translate(${panTranslateX}px, ${panTranslateY}px)`;
+      repositionIfEditing();
       return;
     }
   });
