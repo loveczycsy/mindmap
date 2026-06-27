@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "title": "实验脑图",
+  "theme": "rounded",
+  "globalNodeWidth": 210,
+  "crossLinks": [],
+  "summaries": [],
+  "createdAt": "2026-06-27T01:03:30.099Z",
+  "updatedAt": "2026-06-27T01:03:43.675Z",
+  "root": {
+    "id": "mqvnp7w360bcmu",
+    "label": "实验脑图",
+    "expanded": true,
+    "attachments": [],
+    "children": [],
+    "fillColor": null,
+    "textColor": null,
+    "nodeWidth": null,
+    "fontSize": 22,
+    "textAlign": "center",
+    "sideNotes": [],
+    "_nodeHeight": 63,
+    "_treeHeight": 63
+  }
+}
