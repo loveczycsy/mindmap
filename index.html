@@ -2618,14 +2618,18 @@ async function saveToCloud(){
   const path = CLOUD_DIR + '/' + name.replace(/[/\\:?*"<>|]/g,'_') + '.qmind';
   
   try {
-    // Check if file already exists to get SHA
-    let sha = null;
-    const exist = await githubApiFetch('/repos/'+GITHUB_OWNER+'/'+GITHUB_REPO+'/contents/'+path);
-    if(exist) sha = exist.sha;
-    
-    const putBody = {message: '保存脑图: ' + name, content: content};
-    if(sha) putBody.sha = sha;
-    await githubApiFetch('/repos/'+GITHUB_OWNER+'/'+GITHUB_REPO+'/contents/'+path, 'PUT', putBody);
+    const doSave = async (retry) => {
+      const exist = await githubApiFetch('/repos/'+GITHUB_OWNER+'/'+GITHUB_REPO+'/contents/'+path);
+      const putBody = {message: '保存脑图: ' + name, content: content};
+      if(exist) putBody.sha = exist.sha;
+      try {
+        await githubApiFetch('/repos/'+GITHUB_OWNER+'/'+GITHUB_REPO+'/contents/'+path, 'PUT', putBody);
+      } catch(e2){
+        if(retry && (e2.message||'').includes('does not match')) return doSave(false);
+        throw e2;
+      }
+    };
+    await doSave(true);
     hideLocalDialogs();
     alert('已保存到云端 ✓\nhttps://github.com/'+GITHUB_OWNER+'/'+GITHUB_REPO+'/tree/main/'+path);
   } catch(e){
