@@ -2623,11 +2623,9 @@ async function saveToCloud(){
     const exist = await githubApiFetch('/repos/'+GITHUB_OWNER+'/'+GITHUB_REPO+'/contents/'+path);
     if(exist) sha = exist.sha;
     
-    await githubApiFetch('/repos/'+GITHUB_OWNER+'/'+GITHUB_REPO+'/contents/'+path, 'PUT', {
-      message: '保存脑图: ' + name,
-      content: content,
-      sha: sha
-    });
+    const putBody = {message: '保存脑图: ' + name, content: content};
+    if(sha) putBody.sha = sha;
+    await githubApiFetch('/repos/'+GITHUB_OWNER+'/'+GITHUB_REPO+'/contents/'+path, 'PUT', putBody);
     hideLocalDialogs();
     alert('已保存到云端 ✓\nhttps://github.com/'+GITHUB_OWNER+'/'+GITHUB_REPO+'/tree/main/'+path);
   } catch(e){
