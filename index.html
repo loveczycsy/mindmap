@@ -1507,14 +1507,14 @@ function renderTree(){
       const ey = cp.y + cp.h / 2;
       const lineColor = isRoundedTheme ? '#8fa84f' : '#bbb';
       const lineWidth = isRoundedTheme ? 4 : 1.5;
-      if(isRoundedTheme){
+      if(isRoundedTheme && node.children.length > 1){
         const c1x = sx + (ex - sx) * 0.7;
         const c1y = startY;
         const c2x = ex - (ex - sx) * 0.3;
         const c2y = ey;
         svgPaths += `<path d="M${sx} ${startY} C${c1x} ${c1y}, ${c2x} ${c2y}, ${ex} ${ey}" stroke="${lineColor}" stroke-width="${lineWidth}" fill="none" stroke-linecap="round"/>`;
       } else if(node.children.length === 1){
-        svgPaths += `<path d="M${sx} ${startY} L${ex} ${ey}" stroke="#bbb" stroke-width="1.5" fill="none"/>`;
+        svgPaths += `<path d="M${sx} ${startY} L${ex} ${ey}" stroke="${lineColor}" stroke-width="${isRoundedTheme ? lineWidth : 1.5}" fill="none" stroke-linecap="round"/>`;
       } else {
         const mx = sx + 20;
         svgPaths += `<path d="M${sx} ${startY} L${mx} ${startY} L${mx} ${ey} L${ex} ${ey}" stroke="#bbb" stroke-width="1.5" fill="none"/>`;
@@ -2859,7 +2859,7 @@ function renderExportCanvas(){
       const startY2 = y + h / 2;
       const sx=x+w, ex=cp.x, ey=cp.y+cp.h/2;
       ctx.beginPath();
-      if(isRoundedExport){
+      if(isRoundedExport && node.children.length > 1){
         ctx.strokeStyle = '#8fa84f';
         ctx.lineWidth = 4;
         ctx.lineCap = 'round';
@@ -2870,8 +2870,9 @@ function renderExportCanvas(){
         ctx.moveTo(sx,startY2);
         ctx.bezierCurveTo(c1x,c1y,c2x,c2y,ex,ey);
       } else if(node.children.length === 1){
-        ctx.strokeStyle = '#bbb';
-        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = isRoundedExport ? '#8fa84f' : '#bbb';
+        ctx.lineWidth = isRoundedExport ? 4 : 1.5;
+        ctx.lineCap = isRoundedExport ? 'round' : 'butt';
         ctx.moveTo(sx,startY2); ctx.lineTo(ex,ey);
       } else {
         ctx.strokeStyle = '#bbb';
