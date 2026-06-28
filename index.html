@@ -1039,17 +1039,13 @@ function getDefaultColor(node, depth, parentColor){
   const theme = getTheme();
   if(depth === 0) return theme.root;
   if(depth === 1){
-    // 所有一级子节点颜色一致，均使用 palette[0]
     if(!depth1Colors[node.id]){
       depth1Colors[node.id] = theme.palette[0];
     }
     return depth1Colors[node.id];
   }
-  if(parentColor && parentColor.bg){
-    const l = lightenColor(parentColor.bg, 0.25);
-    return { bg: l, border: parentColor.border, text: parentColor.text };
-  }
-  return theme.palette[0];
+  const idx = Math.min(depth - 1, theme.palette.length - 1);
+  return theme.palette[idx];
 }
 
 function getNodeColor(node, depth, parentColor){
@@ -2774,9 +2770,10 @@ function renderExportCanvas(){
       else if(depth===1){
         if(!d1c[node.id]){ d1c[node.id]=exportTheme.palette[0]; }
         dflt = d1c[node.id];
-      } else if(parentColor && parentColor.bg){
-        dflt = {bg:lightenColor(parentColor.bg,0.25), border:parentColor.border, text:parentColor.text};
-      } else dflt = exportTheme.palette[0];
+      } else {
+        const idx = Math.min(depth - 1, exportTheme.palette.length - 1);
+        dflt = exportTheme.palette[idx];
+      }
       return {
         bg: node.fillColor || dflt.bg,
         border: node.fillColor ? darkenBorder(node.fillColor) : dflt.border,
@@ -2788,10 +2785,8 @@ function renderExportCanvas(){
       if(!d1c[node.id]){ d1c[node.id]=exportTheme.palette[0]; }
       return d1c[node.id];
     }
-    if(parentColor && parentColor.bg){
-      return {bg:lightenColor(parentColor.bg,0.25), border:parentColor.border, text:parentColor.text};
-    }
-    return exportTheme.palette[0];
+    const idx = Math.min(depth - 1, exportTheme.palette.length - 1);
+    return exportTheme.palette[idx];
   }
 
   function calcTH(node){
