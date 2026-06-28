@@ -1162,6 +1162,17 @@ function layoutWithCollisionAvoidance(){
   for(const p of nodePositions) posMap.set(p.node.id, p);
   
   adjustSubtreePositions(mindmap.root, posMap);
+
+  // Post-process: ensure single-child parent-child pairs are Y-center aligned
+  for(const p of nodePositions){
+    const { node, y, h } = p;
+    if(!node.expanded || node.children.length !== 1) continue;
+    const child = node.children[0];
+    const cp = nodePositions.find(pp => pp.node.id === child.id);
+    if(!cp) continue;
+    const parentCenter = y + h / 2;
+    cp.y = parentCenter - cp.h / 2;
+  }
 }
 
 function adjustSubtreePositions(node, posMap){
