@@ -2105,7 +2105,9 @@ function autoResizeInlineInput(){
   document.body.removeChild(clone);
 
   const minW = parseFloat(inp.style.minWidth) || 100;
-  const newW = Math.max(minW, Math.min(textW + 20, window.innerWidth - 40));
+  // 最大宽度：不超过节点原始宽度的 2.5 倍，且不超过 400px 和视口宽度
+  const maxW = Math.min(minW * 2.5, 400, window.innerWidth - 60);
+  const newW = Math.max(minW, Math.min(textW + 16, maxW));
   inp.style.width = newW + 'px';
 
   // 高度自适应
