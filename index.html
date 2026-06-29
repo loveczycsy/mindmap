@@ -1807,6 +1807,10 @@ function hideInlineLabelInput(){
     // 清除之前设置的背景/边框，避免残留
     inp.style.background = 'transparent';
     inp.style.border = 'none';
+    inp.style.borderColor = '';
+    inp.style.borderStyle = '';
+    inp.style.borderWidth = '';
+    inp.style.borderRadius = '';
     inp.style.boxShadow = 'none';
   }
   document.querySelectorAll('#mindmap-tree .node .label[style*="visibility: hidden"]').forEach(el => el.style.visibility = '');
@@ -1848,27 +1852,30 @@ function positionInlineInput(){
   const padB = parseFloat(cs.paddingBottom) || 0;
   const borderW = parseFloat(cs.borderLeftWidth) || 0;
 
+  // 输入框有 1.5px 边框，left/top 需额外偏移 -1.5 使 content 对齐节点 content box
+  const inpBorder = 1.5;
   inp.style.position = 'fixed';
-  // 左、上对齐节点的 content box
-  inp.style.left = (rect.left + borderW + padL) + 'px';
-  inp.style.top = (rect.top + borderW + padT) + 'px';
-  // 设 min-width，让 autoResizeInlineInput 按内容动态扩展宽度
-  inp.style.minWidth = (rect.width - borderW * 2 - padL - padR) + 'px';
-  inp.style.width = (rect.width - borderW * 2 - padL - padR) + 'px';
+  inp.style.left = (rect.left + borderW + padL - inpBorder) + 'px';
+  inp.style.top = (rect.top + borderW + padT - inpBorder) + 'px';
+  // content width = 节点 content box 宽度（不含输入框自身边框）
+  const contentW = rect.width - borderW * 2 - padL - padR;
+  inp.style.minWidth = contentW + 'px';
+  inp.style.width = contentW + 'px';
   inp.style.minHeight = (rect.height - borderW * 2 - padT - padB) + 'px';
   // 同步节点的 padding，使文字排版与 label 完全一致
   inp.style.padding = '0';
 
-  // 只继承文字颜色和字号，border/background 用底层的节点框
+  // 继承节点框的背景/边框/圆角——让输入框宽度自适应时视觉上节点框同步扩展
   inp.style.color = nodeEl.style.color || '#303133';
   inp.style.fontSize = Math.round((n && n.fontSize ? n.fontSize : 15) * zoomLevel) + 'px';
   inp.style.textAlign = (n && n.textAlign ? n.textAlign : '');
-  // 确保没有边框/背景/阴影（底层节点框提供）
-  inp.style.border = 'none';
-  inp.style.background = 'transparent';
+  inp.style.background = nodeEl.style.background || 'transparent';
+  inp.style.borderColor = nodeEl.style.borderColor || '#ccc';
+  inp.style.borderStyle = 'solid';
+  inp.style.borderWidth = '1.5px';
+  inp.style.borderRadius = getComputedStyle(nodeEl).borderRadius || '8px';
   inp.style.boxShadow = 'none';
   inp.style.outline = 'none';
-  inp.style.borderRadius = '0';
   inp.style.display = '';
   inp.style.zIndex = '100';
 
