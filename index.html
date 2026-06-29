@@ -308,7 +308,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
   </span>
   <!-- 内联编辑 div(contenteditable) - 比 textarea 更友好于中文IME -->
   <div id="inline-label-input" contenteditable="true"
-    style="display:none;position:fixed;background:transparent;border:none;outline:none;overflow:hidden;padding:6px 8px;margin:0;font-size:15px;font-family:inherit;line-height:1.3;white-space:pre-wrap;word-wrap:break-word;word-break:break-all;color:inherit;z-index:100;border-radius:8px;min-height:24px"
+    style="display:none;position:fixed;background:transparent;border:none;outline:none;overflow:hidden;padding:6px 8px;margin:0;font-size:15px;font-family:inherit;line-height:1.3;white-space:pre-wrap;word-wrap:break-word;word-break:break-word;color:inherit;z-index:100;border-radius:8px;min-height:24px"
     spellcheck="false"></div>
   <!-- 格式化工具栏 -->
   <div id="fmt-toolbar" class="fmt-toolbar">
@@ -1849,9 +1849,11 @@ function positionInlineInput(){
   const borderW = parseFloat(cs.borderLeftWidth) || 0;
 
   inp.style.position = 'fixed';
-  // 让输入框对齐节点的 content box，文字位置与 label 完全一致
+  // 左、上对齐节点的 content box
   inp.style.left = (rect.left + borderW + padL) + 'px';
   inp.style.top = (rect.top + borderW + padT) + 'px';
+  // 设 min-width，让 autoResizeInlineInput 按内容动态扩展宽度
+  inp.style.minWidth = (rect.width - borderW * 2 - padL - padR) + 'px';
   inp.style.width = (rect.width - borderW * 2 - padL - padR) + 'px';
   inp.style.minHeight = (rect.height - borderW * 2 - padT - padB) + 'px';
   // 同步节点的 padding，使文字排版与 label 完全一致
@@ -1874,10 +1876,8 @@ function positionInlineInput(){
   labelEl.style.visibility = 'hidden';
   if(n) inp.innerHTML = n.label || '';
 
-  // 自适应：只调 textarea 高度，不碰宽度（宽度跟随节点框）
-  inp.style.height = 'auto';
-  inp.style.height = Math.max(inp.scrollHeight, rect.height - borderW * 2 - padT - padB) + 'px';
-  positionFmtToolbar();
+  // 自适应宽高
+  autoResizeInlineInput();
 }
 
 /* ======= Format Toolbar ======= */
@@ -1887,7 +1887,13 @@ function positionFmtToolbar(){
   if(!tb || !inp || inp.style.display === 'none'){ tb.style.display='none'; return; }
   const r = inp.getBoundingClientRect();
   tb.style.left = r.left + 'px';
-  tb.style.top = (r.top - tb.offsetHeight - 4) + 'px';
+  // 优先放在上方，若空间不足则放在输入框下方，避免遮挡节点
+  const aboveTop = r.top - tb.offsetHeight - 4;
+  if(aboveTop >= 4){
+    tb.style.top = aboveTop + 'px';
+  } else {
+    tb.style.top = (r.bottom + 4) + 'px';
+  }
   tb.style.display = 'inline-flex';
 }
 function hideFmtToolbar(){
@@ -2078,14 +2084,30 @@ function startEditing(id){
   // 不调 setSelectionRange——让 IME/浏览器自然接管光标位置
 }
 
-/* 【优化】文本框自适应：只调整 textarea 高度，宽度跟随节点框不改变 */
+/* 【优化】文本框自适应：动态调整宽高 */
 function autoResizeInlineInput(){
   const inp = document.getElementById('inline-label-input');
   if(inp.style.display === 'none') return;
   
+  // 用隐藏 clone 测量文本实际宽度（white-space:pre 不折行，精确取宽）
+  const clone = document.createElement('span');
+  clone.style.cssText = 'position:fixed;visibility:hidden;white-space:pre;font-size:' + inp.style.fontSize + ';font-family:inherit;letter-spacing:inherit';
+  clone.textContent = inp.textContent || ' ';
+  document.body.appendChild(clone);
+  const textW = clone.offsetWidth;
+  document.body.removeChild(clone);
+
+  const minW = parseFloat(inp.style.minWidth) || 100;
+  const newW = Math.max(minW, Math.min(textW + 20, window.innerWidth - 40));
+  inp.style.width = newW + 'px';
+
+  // 高度自适应
   inp.style.height = 'auto';
   const newH = Math.max(inp.scrollHeight, 30);
   inp.style.height = newH + 'px';
+
+  // 重新定位工具栏
+  positionFmtToolbar();
 }
 
 /* ==================== SIDE NOTES ==================== */
